@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cauce-protocol.org/schemas/v1/methods/publish.schema.json",
+  "title": "cauce.publish",
+  "description": "Publish a message to a topic",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "required": ["topic", "message"],
+      "properties": {
+        "topic": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$",
+          "description": "Topic to publish to (no wildcards allowed)"
+        },
+        "message": {
+          "oneOf": [
+            { "$ref": "../signal.schema.json" },
+            { "$ref": "../action.schema.json" }
+          ],
+          "description": "Signal or action to publish"
+        }
+      },
+      "additionalProperties": false
+    },
+    "response": {
+      "type": "object",
+      "required": ["message_id"],
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "pattern": "^msg_[a-zA-Z0-9]+$",
+          "description": "Hub-assigned message identifier"
+        },
+        "delivered_to": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of subscribers message was delivered to"
+        },
+        "queued_for": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of offline subscribers message was queued for"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

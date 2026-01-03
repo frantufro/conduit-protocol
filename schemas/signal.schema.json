@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cauce-protocol.org/schemas/v1/signal.schema.json",
+  "title": "Cauce Signal",
+  "description": "A unit of communication from any source in the Cauce Protocol",
+  "type": "object",
+  "required": ["id", "version", "timestamp", "source", "topic", "payload"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^sig_[0-9]+_[a-zA-Z0-9]+$",
+      "description": "Globally unique signal identifier. Format: sig_<unix_timestamp>_<random>"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Protocol version (e.g., '1.0')"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when signal was created at source"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "topic": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$",
+      "description": "Topic this signal is published to"
+    },
+    "payload": {
+      "$ref": "#/$defs/payload"
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "encrypted": {
+      "$ref": "#/$defs/encrypted"
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "required": ["type", "adapter_id", "native_id"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source type identifier (e.g., 'email', 'sms', 'slack')"
+        },
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifier of the adapter that produced this signal"
+        },
+        "native_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Original ID from the source system"
+        }
+      },
+      "additionalProperties": false
+    },
+    "payload": {
+      "type": "object",
+      "required": ["raw"],
+      "properties": {
+        "raw": {
+          "description": "Raw content in source-native format"
+        },
+        "content_type": {
+          "type": "string",
+          "description": "MIME type of raw content"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Size of raw content in bytes"
+        }
+      },
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "thread_id": {
+          "type": "string",
+          "description": "Conversation/thread identifier"
+        },
+        "in_reply_to": {
+          "type": "string",
+          "description": "Signal ID this is replying to"
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Related signal IDs"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "normal", "high", "urgent"],
+          "description": "Source-indicated priority"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source-provided tags/labels"
+        }
+      },
+      "additionalProperties": true
+    },
+    "encrypted": {
+      "type": "object",
+      "required": ["algorithm", "recipient_public_key", "nonce", "ciphertext"],
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "enum": ["x25519-xsalsa20-poly1305", "A256GCM", "xchacha20-poly1305"],
+          "description": "Encryption algorithm used"
+        },
+        "recipient_public_key": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "Recipient's public key (base64)"
+        },
+        "nonce": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "Encryption nonce (base64)"
+        },
+        "ciphertext": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "Encrypted payload (base64)"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cauce-protocol.org/schemas/v1/payloads/email.schema.json",
+  "title": "Email Payload",
+  "description": "Payload schema for email signals and actions",
+  "$defs": {
+    "signalPayload": {
+      "type": "object",
+      "required": ["raw"],
+      "properties": {
+        "raw": {
+          "type": "object",
+          "required": ["from", "to", "subject"],
+          "properties": {
+            "from": {
+              "type": "string",
+              "format": "email",
+              "description": "Sender email address"
+            },
+            "to": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "email"
+              },
+              "minItems": 1,
+              "description": "Recipient email addresses"
+            },
+            "cc": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "email"
+              },
+              "description": "CC recipients"
+            },
+            "bcc": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "email"
+              },
+              "description": "BCC recipients"
+            },
+            "reply_to": {
+              "type": "string",
+              "format": "email",
+              "description": "Reply-to address"
+            },
+            "subject": {
+              "type": "string",
+              "description": "Email subject"
+            },
+            "body_text": {
+              "type": "string",
+              "description": "Plain text body"
+            },
+            "body_html": {
+              "type": "string",
+              "description": "HTML body"
+            },
+            "attachments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/attachment"
+              },
+              "description": "Email attachments"
+            },
+            "headers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Additional email headers"
+            }
+          }
+        },
+        "content_type": {
+          "type": "string",
+          "const": "message/rfc822"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "actionPayload": {
+      "type": "object",
+      "required": ["to"],
+      "properties": {
+        "to": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "email"
+          },
+          "minItems": 1,
+          "description": "Recipient email addresses"
+        },
+        "cc": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "email"
+          },
+          "description": "CC recipients"
+        },
+        "bcc": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "email"
+          },
+          "description": "BCC recipients"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject"
+        },
+        "body_text": {
+          "type": "string",
+          "description": "Plain text body"
+        },
+        "body_html": {
+          "type": "string",
+          "description": "HTML body"
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/attachment"
+          },
+          "description": "Attachments to include"
+        }
+      }
+    },
+    "attachment": {
+      "type": "object",
+      "required": ["filename", "content_type"],
+      "properties": {
+        "filename": {
+          "type": "string",
+          "description": "Attachment filename"
+        },
+        "content_type": {
+          "type": "string",
+          "description": "MIME type of attachment"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Size in bytes"
+        },
+        "content_id": {
+          "type": "string",
+          "description": "Content ID for inline attachments"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to download attachment (for signals)"
+        },
+        "data": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "Base64-encoded content (for actions)"
+        }
+      }
+    }
+  }
+}

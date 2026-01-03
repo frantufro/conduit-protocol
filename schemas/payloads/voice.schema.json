@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cauce-protocol.org/schemas/v1/payloads/voice.schema.json",
+  "title": "Voice Payload",
+  "description": "Payload schema for voice calls, voicemails, and audio messages",
+  "$defs": {
+    "voicemailSignalPayload": {
+      "type": "object",
+      "required": ["raw"],
+      "properties": {
+        "raw": {
+          "type": "object",
+          "required": ["from", "duration_seconds"],
+          "properties": {
+            "from": {
+              "type": "string",
+              "pattern": "^\\+[1-9]\\d{1,14}$",
+              "description": "Caller phone number (E.164 format)"
+            },
+            "to": {
+              "type": "string",
+              "pattern": "^\\+[1-9]\\d{1,14}$",
+              "description": "Called phone number"
+            },
+            "duration_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Duration of voicemail in seconds"
+            },
+            "audio_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "URL to download audio"
+            },
+            "audio_format": {
+              "type": "string",
+              "enum": ["audio/mpeg", "audio/wav", "audio/ogg", "audio/webm"],
+              "description": "Audio format"
+            },
+            "transcription": {
+              "type": "string",
+              "description": "Transcription of voicemail (if available)"
+            },
+            "transcription_confidence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Confidence score of transcription"
+            }
+          }
+        },
+        "content_type": {
+          "type": "string",
+          "enum": ["audio/mpeg", "audio/wav", "audio/ogg", "audio/webm"]
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "missedCallSignalPayload": {
+      "type": "object",
+      "required": ["raw"],
+      "properties": {
+        "raw": {
+          "type": "object",
+          "required": ["from", "call_time"],
+          "properties": {
+            "from": {
+              "type": "string",
+              "pattern": "^\\+[1-9]\\d{1,14}$",
+              "description": "Caller phone number (E.164 format)"
+            },
+            "to": {
+              "type": "string",
+              "pattern": "^\\+[1-9]\\d{1,14}$",
+              "description": "Called phone number"
+            },
+            "call_time": {
+              "type": "string",
+              "format": "date-time",
+              "description": "When the call was received"
+            },
+            "ring_duration_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "How long phone rang"
+            },
+            "caller_name": {
+              "type": "string",
+              "description": "Caller ID name (if available)"
+            }
+          }
+        },
+        "content_type": {
+          "type": "string",
+          "const": "application/json"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "audioMessageSignalPayload": {
+      "type": "object",
+      "required": ["raw"],
+      "properties": {
+        "raw": {
+          "type": "object",
+          "required": ["from", "duration_seconds"],
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Sender identifier"
+            },
+            "to": {
+              "type": "string",
+              "description": "Recipient identifier"
+            },
+            "duration_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Duration of audio in seconds"
+            },
+            "audio_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "URL to download audio"
+            },
+            "audio_format": {
+              "type": "string",
+              "enum": ["audio/mpeg", "audio/ogg", "audio/webm", "audio/aac"],
+              "description": "Audio format"
+            },
+            "waveform": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "description": "Audio waveform visualization data"
+            },
+            "transcription": {
+              "type": "string",
+              "description": "Transcription (if available)"
+            }
+          }
+        },
+        "content_type": {
+          "type": "string",
+          "enum": ["audio/mpeg", "audio/ogg", "audio/webm", "audio/aac"]
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "callActionPayload": {
+      "type": "object",
+      "required": ["to"],
+      "properties": {
+        "to": {
+          "type": "string",
+          "pattern": "^\\+[1-9]\\d{1,14}$",
+          "description": "Phone number to call"
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^\\+[1-9]\\d{1,14}$",
+          "description": "Caller ID to use"
+        },
+        "message": {
+          "type": "string",
+          "description": "Text-to-speech message to play"
+        },
+        "audio_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Audio file URL to play"
+        },
+        "voice": {
+          "type": "string",
+          "description": "TTS voice to use"
+        }
+      }
+    }
+  }
+}

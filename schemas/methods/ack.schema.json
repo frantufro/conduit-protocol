@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cauce-protocol.org/schemas/v1/methods/ack.schema.json",
+  "title": "cauce.ack",
+  "description": "Acknowledge receipt of signals",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "required": ["signal_ids", "subscription_id"],
+      "properties": {
+        "signal_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sig_[0-9]+_[a-zA-Z0-9]+$"
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "description": "Signal IDs to acknowledge"
+        },
+        "subscription_id": {
+          "type": "string",
+          "pattern": "^sub_[a-zA-Z0-9_]+$",
+          "description": "Subscription these signals were received on"
+        }
+      },
+      "additionalProperties": false
+    },
+    "response": {
+      "type": "object",
+      "required": ["acknowledged"],
+      "properties": {
+        "acknowledged": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of signals successfully acknowledged"
+        },
+        "failed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["signal_id", "reason"],
+            "properties": {
+              "signal_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Signals that failed to acknowledge"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

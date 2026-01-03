@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cauce-protocol.org/schemas/v1/methods/hello.schema.json",
+  "title": "cauce.hello",
+  "description": "Initial handshake and capability negotiation",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "required": ["protocol_version", "client_id", "capabilities"],
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "Protocol version client supports"
+        },
+        "min_protocol_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "Minimum protocol version client supports"
+        },
+        "max_protocol_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "Maximum protocol version client supports"
+        },
+        "client_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier for this client"
+        },
+        "client_type": {
+          "type": "string",
+          "enum": ["adapter", "agent", "a2a_agent"],
+          "description": "Type of client connecting"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["subscribe", "publish", "ack", "e2e_encryption"]
+          },
+          "description": "Capabilities this client supports"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        }
+      },
+      "additionalProperties": false
+    },
+    "response": {
+      "type": "object",
+      "required": ["session_id", "server_version", "capabilities"],
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "pattern": "^sess_[a-zA-Z0-9]+$",
+          "description": "Session identifier for subsequent requests"
+        },
+        "server_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "Protocol version server is using"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Capabilities server supports"
+        },
+        "session_expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When this session expires"
+        }
+      },
+      "additionalProperties": false
+    },
+    "auth": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["bearer", "api_key", "mtls"],
+          "description": "Authentication type"
+        },
+        "token": {
+          "type": "string",
+          "description": "Authentication token (for bearer type)"
+        },
+        "api_key": {
+          "type": "string",
+          "description": "API key (for api_key type)"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

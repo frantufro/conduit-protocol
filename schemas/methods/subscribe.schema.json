@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cauce-protocol.org/schemas/v1/methods/subscribe.schema.json",
+  "title": "cauce.subscribe",
+  "description": "Subscribe to topic(s)",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "required": ["topics"],
+      "properties": {
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "description": "Topics to subscribe to (wildcards allowed)"
+        },
+        "approval_type": {
+          "type": "string",
+          "enum": ["automatic", "user_approved"],
+          "default": "automatic",
+          "description": "Whether subscription requires user approval"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Reason for subscription (shown to user for approval)"
+        },
+        "transport": {
+          "type": "string",
+          "enum": ["websocket", "sse", "polling", "long_polling", "webhook"],
+          "description": "Preferred transport for signal delivery"
+        },
+        "webhook": {
+          "$ref": "#/$defs/webhookConfig"
+        },
+        "e2e": {
+          "$ref": "#/$defs/e2eConfig"
+        }
+      },
+      "additionalProperties": false
+    },
+    "response": {
+      "type": "object",
+      "required": ["subscription_id", "status", "topics"],
+      "properties": {
+        "subscription_id": {
+          "type": "string",
+          "pattern": "^sub_[a-zA-Z0-9_]+$",
+          "description": "Unique subscription identifier"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "pending_approval", "denied"],
+          "description": "Subscription status"
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Topics subscribed to (may be restricted from request)"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When subscription was created"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When subscription expires (if applicable)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "webhookConfig": {
+      "type": "object",
+      "required": ["url", "secret"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Webhook endpoint URL"
+        },
+        "secret": {
+          "type": "string",
+          "minLength": 16,
+          "description": "Secret for signing webhook payloads"
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Custom headers to include in webhook requests"
+        }
+      },
+      "additionalProperties": false
+    },
+    "e2eConfig": {
+      "type": "object",
+      "required": ["enabled", "public_key", "supported_algorithms"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether E2E encryption is enabled"
+        },
+        "public_key": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "Subscriber's public key for encryption"
+        },
+        "supported_algorithms": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["x25519-xsalsa20-poly1305", "A256GCM", "xchacha20-poly1305"]
+          },
+          "minItems": 1,
+          "description": "Encryption algorithms subscriber supports"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

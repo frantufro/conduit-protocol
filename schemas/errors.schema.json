@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cauce-protocol.org/schemas/v1/errors.schema.json",
+  "title": "Cauce Protocol Errors",
+  "description": "Error codes and error response formats",
+  "type": "object",
+  "$defs": {
+    "errorResponse": {
+      "type": "object",
+      "required": ["jsonrpc", "id", "error"],
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" },
+            { "type": "null" }
+          ]
+        },
+        "error": {
+          "$ref": "#/$defs/error"
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "integer",
+          "description": "Error code"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable error message"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "details": {
+              "type": "string",
+              "description": "Additional error details"
+            },
+            "suggestion": {
+              "type": "string",
+              "description": "Suggested action to resolve the error"
+            },
+            "retry_after_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Suggested retry delay in milliseconds"
+            },
+            "field": {
+              "type": "string",
+              "description": "Field that caused the error (for validation errors)"
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    },
+    "errorCodes": {
+      "description": "Enumeration of all Cauce error codes",
+      "type": "object",
+      "properties": {
+        "jsonRpcStandard": {
+          "description": "JSON-RPC 2.0 standard errors",
+          "type": "object",
+          "properties": {
+            "PARSE_ERROR": { "const": -32700, "description": "Invalid JSON" },
+            "INVALID_REQUEST": { "const": -32600, "description": "Not a valid JSON-RPC request" },
+            "METHOD_NOT_FOUND": { "const": -32601, "description": "Unknown method" },
+            "INVALID_PARAMS": { "const": -32602, "description": "Invalid method parameters" },
+            "INTERNAL_ERROR": { "const": -32603, "description": "Server error" }
+          }
+        },
+        "cauceProtocol": {
+          "description": "Cauce-specific errors",
+          "type": "object",
+          "properties": {
+            "SUBSCRIPTION_NOT_FOUND": { "const": -32001, "description": "Subscription ID does not exist" },
+            "TOPIC_NOT_FOUND": { "const": -32002, "description": "Topic does not exist" },
+            "NOT_AUTHORIZED": { "const": -32003, "description": "Insufficient permissions" },
+            "SUBSCRIPTION_PENDING": { "const": -32004, "description": "Awaiting user approval" },
+            "SUBSCRIPTION_DENIED": { "const": -32005, "description": "User denied subscription" },
+            "RATE_LIMITED": { "const": -32006, "description": "Too many requests" },
+            "SIGNAL_TOO_LARGE": { "const": -32007, "description": "Payload exceeds size limit" },
+            "ENCRYPTION_REQUIRED": { "const": -32008, "description": "E2E encryption required but not provided" },
+            "INVALID_ENCRYPTION": { "const": -32009, "description": "E2E decryption failed" },
+            "ADAPTER_UNAVAILABLE": { "const": -32010, "description": "Target adapter is offline" },
+            "DELIVERY_FAILED": { "const": -32011, "description": "Could not deliver to subscriber" },
+            "QUEUE_FULL": { "const": -32012, "description": "Publisher's queue is full" },
+            "SESSION_EXPIRED": { "const": -32013, "description": "Session has expired, re-authenticate" },
+            "UNSUPPORTED_TRANSPORT": { "const": -32014, "description": "Requested transport not supported" },
+            "INVALID_TOPIC": { "const": -32015, "description": "Topic name is malformed" }
+          }
+        }
+      }
+    }
+  }
+}

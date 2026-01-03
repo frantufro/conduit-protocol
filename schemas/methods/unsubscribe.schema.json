@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cauce-protocol.org/schemas/v1/methods/unsubscribe.schema.json",
+  "title": "cauce.unsubscribe",
+  "description": "Unsubscribe from topic(s)",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "required": ["subscription_id"],
+      "properties": {
+        "subscription_id": {
+          "type": "string",
+          "pattern": "^sub_[a-zA-Z0-9_]+$",
+          "description": "Subscription to remove"
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Specific topics to unsubscribe from (optional, removes all if omitted)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "response": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["removed", "updated"],
+          "description": "Whether subscription was fully removed or just updated"
+        },
+        "remaining_topics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Topics still subscribed to (if updated)"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

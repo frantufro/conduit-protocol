@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cauce-protocol.org/schemas/v1/payloads/sms.schema.json",
+  "title": "SMS Payload",
+  "description": "Payload schema for SMS/MMS signals and actions",
+  "$defs": {
+    "signalPayload": {
+      "type": "object",
+      "required": ["raw"],
+      "properties": {
+        "raw": {
+          "type": "object",
+          "required": ["from", "to", "body"],
+          "properties": {
+            "from": {
+              "type": "string",
+              "pattern": "^\\+[1-9]\\d{1,14}$",
+              "description": "Sender phone number (E.164 format)"
+            },
+            "to": {
+              "type": "string",
+              "pattern": "^\\+[1-9]\\d{1,14}$",
+              "description": "Recipient phone number (E.164 format)"
+            },
+            "body": {
+              "type": "string",
+              "description": "Message text"
+            },
+            "media": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/media"
+              },
+              "description": "MMS media attachments"
+            },
+            "segments": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Number of SMS segments"
+            }
+          }
+        },
+        "content_type": {
+          "type": "string",
+          "enum": ["text/plain", "multipart/related"]
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "actionPayload": {
+      "type": "object",
+      "required": ["to", "body"],
+      "properties": {
+        "to": {
+          "type": "string",
+          "pattern": "^\\+[1-9]\\d{1,14}$",
+          "description": "Recipient phone number (E.164 format)"
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 1600,
+          "description": "Message text"
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/media"
+          },
+          "description": "MMS media to attach"
+        }
+      }
+    },
+    "media": {
+      "type": "object",
+      "required": ["content_type"],
+      "properties": {
+        "content_type": {
+          "type": "string",
+          "description": "MIME type"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to media (for signals)"
+        },
+        "data": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "Base64-encoded content (for actions)"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

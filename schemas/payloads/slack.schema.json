@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cauce-protocol.org/schemas/v1/payloads/slack.schema.json",
+  "title": "Slack Payload",
+  "description": "Payload schema for Slack signals and actions",
+  "$defs": {
+    "signalPayload": {
+      "type": "object",
+      "required": ["raw"],
+      "properties": {
+        "raw": {
+          "type": "object",
+          "required": ["channel", "user", "text", "ts"],
+          "properties": {
+            "channel": {
+              "type": "string",
+              "description": "Channel ID"
+            },
+            "channel_name": {
+              "type": "string",
+              "description": "Channel name"
+            },
+            "channel_type": {
+              "type": "string",
+              "enum": ["channel", "group", "im", "mpim"],
+              "description": "Type of channel"
+            },
+            "user": {
+              "type": "string",
+              "description": "User ID of sender"
+            },
+            "user_name": {
+              "type": "string",
+              "description": "Username of sender"
+            },
+            "text": {
+              "type": "string",
+              "description": "Message text"
+            },
+            "ts": {
+              "type": "string",
+              "description": "Slack timestamp (message ID)"
+            },
+            "thread_ts": {
+              "type": "string",
+              "description": "Thread timestamp (if in thread)"
+            },
+            "blocks": {
+              "type": "array",
+              "description": "Slack Block Kit blocks"
+            },
+            "attachments": {
+              "type": "array",
+              "description": "Slack attachments"
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/file"
+              },
+              "description": "Attached files"
+            },
+            "reactions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/reaction"
+              },
+              "description": "Emoji reactions on message"
+            },
+            "is_mention": {
+              "type": "boolean",
+              "description": "Whether this message mentions the user"
+            },
+            "is_dm": {
+              "type": "boolean",
+              "description": "Whether this is a direct message"
+            }
+          }
+        },
+        "content_type": {
+          "type": "string",
+          "const": "application/json"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "actionPayload": {
+      "type": "object",
+      "required": ["channel"],
+      "properties": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID to send to"
+        },
+        "text": {
+          "type": "string",
+          "description": "Message text"
+        },
+        "thread_ts": {
+          "type": "string",
+          "description": "Thread to reply in"
+        },
+        "blocks": {
+          "type": "array",
+          "description": "Slack Block Kit blocks"
+        },
+        "attachments": {
+          "type": "array",
+          "description": "Slack attachments"
+        },
+        "reply_broadcast": {
+          "type": "boolean",
+          "description": "Also post reply to channel"
+        },
+        "unfurl_links": {
+          "type": "boolean",
+          "description": "Unfurl links in message"
+        },
+        "unfurl_media": {
+          "type": "boolean",
+          "description": "Unfurl media in message"
+        }
+      }
+    },
+    "file": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "mimetype": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "url_private": {
+          "type": "string",
+          "format": "uri"
+        },
+        "url_private_download": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "reaction": {
+      "type": "object",
+      "required": ["name", "count"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Emoji name (without colons)"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "User IDs who reacted"
+        }
+      }
+    }
+  }
+}

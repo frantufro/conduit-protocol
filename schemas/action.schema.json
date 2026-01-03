@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cauce-protocol.org/schemas/v1/action.schema.json",
+  "title": "Cauce Action",
+  "description": "An outbound action published by an agent to trigger communication",
+  "type": "object",
+  "required": ["id", "version", "timestamp", "topic", "action"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^act_[0-9]+_[a-zA-Z0-9]+$",
+      "description": "Globally unique action identifier. Format: act_<unix_timestamp>_<random>"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Protocol version (e.g., '1.0')"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when action was created"
+    },
+    "topic": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$",
+      "description": "Topic this action is published to"
+    },
+    "action": {
+      "$ref": "#/$defs/actionBody"
+    },
+    "context": {
+      "$ref": "#/$defs/context"
+    },
+    "encrypted": {
+      "$ref": "signal.schema.json#/$defs/encrypted"
+    }
+  },
+  "$defs": {
+    "actionBody": {
+      "type": "object",
+      "required": ["type", "target", "payload"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["send", "reply", "forward", "react", "update", "delete"],
+          "description": "Type of action to perform"
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Target channel/source type (e.g., 'email', 'sms', 'slack')"
+        },
+        "payload": {
+          "type": "object",
+          "description": "Action-specific payload"
+        }
+      },
+      "additionalProperties": true
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "in_reply_to": {
+          "type": "string",
+          "description": "Signal ID this action is responding to"
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "Identifier of the agent that created this action"
+        },
+        "thread_id": {
+          "type": "string",
+          "description": "Thread/conversation this action belongs to"
+        },
+        "correlation_id": {
+          "type": "string",
+          "description": "ID for correlating related actions"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
