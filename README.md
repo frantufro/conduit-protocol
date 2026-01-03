@@ -19,10 +19,10 @@ Think of it as a **universal inbox protocol** - your AI agent subscribes to all 
 ┌─────────────────────────────────────────────────────────────────┐
 │                       CAUCE ECOSYSTEM                         │
 │                                                                 │
-│  [Email] → [Adapter] ──┐                                       │
-│  [SMS]   → [Adapter] ──┼──→ [Hub] ←──→ [Your AI Agent]        │
-│  [Slack] → [Adapter] ──┘      ↑                                │
-│                               └────── [External A2A Agents]    │
+│  [Email] → [Adapter] ──┐                                        │
+│  [SMS]   → [Adapter] ──┼──→ [Hub] ←──→ [Your AI Agent]          │
+│  [Slack] → [Adapter] ──┘      ↑                                 │
+│                               └────── [External A2A Agents]     │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
