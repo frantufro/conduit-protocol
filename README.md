@@ -81,13 +81,36 @@ Think of it as a **universal inbox protocol** - your AI agent subscribes to all 
 ## Documentation
 
 - [Full Protocol Specification](./conduit-protocol-spec.md)
+- [JSON Schemas](./schemas/)
+
+### Schemas
+
+```
+schemas/
+├── signal.schema.json          # Core signal format
+├── action.schema.json          # Outbound action format
+├── jsonrpc.schema.json         # JSON-RPC message envelope
+├── errors.schema.json          # Error codes and formats
+├── methods/
+│   ├── hello.schema.json       # Handshake
+│   ├── subscribe.schema.json   # Subscription management
+│   ├── unsubscribe.schema.json
+│   ├── publish.schema.json     # Publishing messages
+│   ├── ack.schema.json         # Acknowledgments
+│   └── subscription.schema.json # Subscription lifecycle
+└── payloads/
+    ├── email.schema.json       # Email-specific payloads
+    ├── sms.schema.json         # SMS/MMS payloads
+    ├── slack.schema.json       # Slack payloads
+    └── voice.schema.json       # Voice/audio payloads
+```
 
 ## Roadmap
 
 | Phase | Deliverable | Status |
 |-------|-------------|--------|
 | 1 | Protocol Specification | Draft |
-| 2 | JSON Schemas | Planned |
+| 2 | JSON Schemas | Done |
 | 3 | Rust SDK | Planned |
 | 4 | Python/TypeScript Bindings | Planned |
 | 5 | Reference Implementations | Planned |
