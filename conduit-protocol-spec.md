@@ -1081,89 +1081,298 @@ Adapters MUST encrypt signals destined for E2E-enabled subscriptions.
 
 ## 9. A2A Integration
 
-Conduit Hub exposes an A2A-compatible endpoint allowing external A2A agents to participate as first-class subscribers.
-
-### 9.1 A2A Endpoint
+Conduit Hub is primarily a Conduit server that **also speaks A2A** as an integration layer. This enables interoperability with the broader AI agent ecosystem without replacing Conduit's native protocol.
 
 ```
-https://hub.example.com/conduit/v1/a2a
+┌─────────────────────────────────────────────────────────────────────┐
+│                         CONDUIT HUB                                 │
+│                                                                     │
+│                    ┌─────────────────────┐                          │
+│                    │   Conduit Core      │                          │
+│                    │   (Pub/Sub Broker)  │                          │
+│                    └─────────────────────┘                          │
+│                           ▲       ▲                                 │
+│                           │       │                                 │
+│         ┌─────────────────┴─┐   ┌─┴─────────────────┐               │
+│         │ Conduit Protocol  │   │  A2A Protocol     │               │
+│         │ (native)          │   │  (integration)    │               │
+│         └─────────────────┬─┘   └─┬─────────────────┘               │
+│                           │       │                                 │
+└───────────────────────────┼───────┼─────────────────────────────────┘
+                            │       │
+                   Conduit Agents   External A2A Agents
+                   & Adapters
 ```
 
-### 9.2 Agent Card
+### 9.1 Overview
 
-The Hub exposes an A2A Agent Card at:
+The A2A integration allows:
+
+1. **Inbound**: External A2A agents send messages to the Hub, which become Conduit signals
+2. **Outbound**: Hub sends push notifications to external A2A agents subscribed to public topics
+3. **Discovery**: External agents discover Hub capabilities via the Agent Card
+
+### 9.2 A2A Endpoint
 
 ```
-https://hub.example.com/.well-known/agent.json
+https://hub.example.com/.well-known/agent.json  (Agent Card)
+https://hub.example.com/a2a                      (A2A Server endpoint)
 ```
+
+### 9.3 Agent Card
+
+The Hub publishes an A2A Agent Card for discovery:
 
 ```json
 {
   "name": "Conduit Hub",
   "description": "Personal communication arbitrage hub",
-  "version": "1.0",
-  "capabilities": [
-    "signal_subscription",
-    "action_publishing",
-    "streaming"
-  ],
-  "endpoints": {
-    "a2a": "https://hub.example.com/conduit/v1/a2a",
-    "sse": "https://hub.example.com/conduit/v1/sse"
+  "url": "https://hub.example.com/a2a",
+  "protocolVersion": "1.0",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true
   },
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "action": {
-        "type": "string",
-        "enum": ["subscribe", "publish", "list_topics"]
-      },
-      "topics": {
-        "type": "array",
-        "items": {"type": "string"}
+  "skills": [
+    {
+      "id": "send_message",
+      "name": "Send Message",
+      "description": "Send a message to the hub owner (email, SMS, etc.)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string", "description": "Message content" },
+          "channel": { "type": "string", "enum": ["email", "sms", "any"], "default": "any" },
+          "subject": { "type": "string", "description": "Subject line (for email)" }
+        },
+        "required": ["message"]
       }
+    },
+    {
+      "id": "schedule_meeting",
+      "name": "Schedule Meeting",
+      "description": "Request a meeting with the hub owner",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "proposed_times": { "type": "array", "items": { "type": "string", "format": "date-time" } },
+          "duration_minutes": { "type": "integer", "default": 30 },
+          "description": { "type": "string" }
+        },
+        "required": ["title", "proposed_times"]
+      }
+    },
+    {
+      "id": "subscribe_updates",
+      "name": "Subscribe to Updates",
+      "description": "Subscribe to public topics (e.g., blog posts, announcements)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "topics": { "type": "array", "items": { "type": "string" } },
+          "push_notification_url": { "type": "string", "format": "uri" }
+        },
+        "required": ["topics", "push_notification_url"]
+      }
+    },
+    {
+      "id": "get_public_topics",
+      "name": "List Public Topics",
+      "description": "Get list of publicly subscribable topics"
+    }
+  ],
+  "securitySchemes": {
+    "apiKey": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "X-API-Key"
     }
   }
 }
 ```
 
-### 9.3 A2A Task Mapping
+### 9.4 Inbound: External Agents → Hub
 
-Conduit operations map to A2A tasks:
+When an external A2A agent sends a message to the Hub:
 
-| Conduit Operation | A2A Task |
-|------------------|----------|
-| Subscribe to signals | Long-running task with streaming artifacts |
-| Publish action | One-shot task |
-| List topics | One-shot task |
-
-### 9.4 A2A Streaming
-
-Signals are delivered to A2A agents as streaming artifacts:
+1. Agent sends `SendMessage` request to Hub's A2A endpoint
+2. Hub creates an A2A Task (state: `SUBMITTED`)
+3. Hub converts the A2A message into a Conduit signal:
 
 ```json
 {
-  "task_id": "task_abc123",
-  "status": "streaming",
-  "artifact": {
-    "type": "signal",
-    "data": {
-      "id": "sig_1704288600_abc123",
-      "topic": "signal.email.received",
-      "payload": {...}
+  "id": "sig_1704288600_a2a_abc123",
+  "version": "1.0",
+  "timestamp": "2026-01-03T10:30:00.000Z",
+  "source": {
+    "type": "a2a",
+    "adapter_id": "a2a_gateway",
+    "native_id": "task_xyz789"
+  },
+  "topic": "signal.a2a.message",
+  "payload": {
+    "raw": {
+      "skill": "send_message",
+      "from_agent": {
+        "name": "External Assistant",
+        "url": "https://agent.example.com/a2a"
+      },
+      "message": "Hi, I'd like to schedule a meeting to discuss the project.",
+      "channel": "email"
+    },
+    "content_type": "application/json"
+  },
+  "metadata": {
+    "a2a_task_id": "task_xyz789",
+    "a2a_context_id": "ctx_abc123"
+  }
+}
+```
+
+4. Hub updates Task state to `WORKING`
+5. Your Conduit agent processes the signal and decides on response
+6. Agent publishes response action
+7. Hub updates Task with artifacts and state `COMPLETED`
+
+#### 9.4.1 A2A Task Lifecycle
+
+```
+External Agent                    Hub                         Your Agent
+      │                            │                              │
+      │──SendMessage──────────────▶│                              │
+      │                            │──signal.a2a.message─────────▶│
+      │◀──Task(SUBMITTED)──────────│                              │
+      │                            │──Task(WORKING)               │
+      │                            │                              │
+      │                            │◀──action (response)──────────│
+      │◀──Task(COMPLETED)──────────│                              │
+      │   + artifacts              │                              │
+```
+
+#### 9.4.2 Task States
+
+| State | Description |
+|-------|-------------|
+| `SUBMITTED` | Request received, signal created |
+| `WORKING` | Signal delivered to Conduit agent, awaiting response |
+| `INPUT_REQUIRED` | Agent needs clarification (multi-turn) |
+| `COMPLETED` | Response generated successfully |
+| `FAILED` | Processing failed |
+| `CANCELLED` | Task cancelled |
+
+### 9.5 Outbound: Hub → External Agents
+
+External A2A agents can subscribe to **public topics** (e.g., blog posts, announcements) and receive push notifications.
+
+#### 9.5.1 Subscription Flow
+
+1. External agent sends `SendMessage` with skill `subscribe_updates`
+2. Hub validates the topics are publicly subscribable
+3. Hub creates subscription with push notification URL
+4. When signals are published to subscribed topics, Hub sends to agent's webhook
+
+#### 9.5.2 Push Notification Format
+
+Hub sends A2A-formatted push notifications:
+
+```json
+POST https://agent.example.com/a2a/notifications
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "method": "tasks/pushNotification",
+  "params": {
+    "taskId": "task_notify_001",
+    "contextId": "ctx_subscription_abc",
+    "status": {
+      "state": "completed",
+      "timestamp": "2026-01-03T10:30:00.000Z"
+    },
+    "artifact": {
+      "name": "signal",
+      "parts": [
+        {
+          "type": "data",
+          "data": {
+            "topic": "signal.blog.published",
+            "signal": {
+              "id": "sig_1704288600_blog123",
+              "payload": {
+                "raw": {
+                  "title": "New Blog Post: AI Agent Protocols",
+                  "url": "https://example.com/blog/ai-protocols",
+                  "summary": "A comparison of MCP, A2A, and Conduit..."
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }
 ```
 
-### 9.5 A2A Agent Subscriptions
+### 9.6 Public vs Private Topics
 
-A2A agents can subscribe like any other agent:
+Hub owners configure which topics are publicly subscribable:
 
-1. A2A agent sends task to Conduit Hub endpoint
-2. Hub creates subscription for A2A agent
-3. Hub streams signals as A2A artifacts (via SSE)
-4. A2A agent acknowledges via task updates
+| Topic Pattern | Visibility | Example Subscribers |
+|--------------|------------|---------------------|
+| `signal.blog.*` | Public | Anyone via A2A |
+| `signal.announcement.*` | Public | Anyone via A2A |
+| `signal.email.*` | Private | Owner's agents only |
+| `signal.sms.*` | Private | Owner's agents only |
+
+Configuration example:
+
+```json
+{
+  "public_topics": [
+    "signal.blog.*",
+    "signal.announcement.*",
+    "signal.status.*"
+  ]
+}
+```
+
+### 9.7 Multi-Turn Conversations
+
+A2A supports multi-turn interactions via `contextId`:
+
+1. External agent sends initial message
+2. Hub responds with `INPUT_REQUIRED` if clarification needed
+3. Agent sends follow-up with same `contextId`
+4. Conversation continues until `COMPLETED` or `FAILED`
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tasks/send",
+  "params": {
+    "contextId": "ctx_abc123",
+    "message": {
+      "role": "user",
+      "parts": [
+        { "type": "text", "text": "Let's do Tuesday at 2pm instead." }
+      ]
+    }
+  }
+}
+```
+
+### 9.8 Error Handling
+
+A2A errors are mapped to standard A2A error responses:
+
+| Conduit Error | A2A Error |
+|--------------|-----------|
+| Topic not public | `TaskRejectedError` |
+| Rate limited | `RateLimitExceededError` |
+| Invalid skill | `InvalidRequestError` |
+| Auth required | `AuthenticationRequiredError` |
 
 ---
 
