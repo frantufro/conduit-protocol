@@ -17,9 +17,10 @@
 7. [Transport Bindings](#7-transport-bindings)
 8. [Security](#8-security)
 9. [A2A Integration](#9-a2a-integration)
-10. [Error Handling](#10-error-handling)
-11. [Versioning](#11-versioning)
-12. [Appendices](#12-appendices)
+10. [MCP Integration](#10-mcp-integration)
+11. [Error Handling](#11-error-handling)
+12. [Versioning](#12-versioning)
+13. [Appendices](#13-appendices)
 
 ---
 
@@ -1376,9 +1377,468 @@ A2A errors are mapped to standard A2A error responses:
 
 ---
 
-## 10. Error Handling
+## 10. MCP Integration
 
-### 10.1 Error Response Format
+Cauce Hub can expose an MCP (Model Context Protocol) interface, enabling MCP-compatible AI agents to interact with the Hub without implementing the native Cauce protocol. This lowers the barrier to adoption since many AI agents already speak MCP.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         CAUCE HUB                                 │
+│                                                                     │
+│                    ┌─────────────────────┐                          │
+│                    │   Cauce Core      │                          │
+│                    │   (Pub/Sub Broker)  │                          │
+│                    └─────────────────────┘                          │
+│                       ▲       ▲       ▲                             │
+│                       │       │       │                             │
+│         ┌─────────────┴─┐ ┌───┴───┐ ┌─┴─────────────┐               │
+│         │ Cauce       │ │  MCP  │ │     A2A       │               │
+│         │ (native)      │ │       │ │               │               │
+│         └───────────────┘ └───────┘ └───────────────┘               │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 10.1 Overview
+
+MCP is designed for **agent-to-tool** communication with three primitives:
+
+| MCP Primitive | Description | Cauce Mapping |
+|---------------|-------------|-----------------|
+| **Resources** | Read-only data | Signals, topics, subscriptions |
+| **Tools** | Callable functions | Subscribe, publish, ack |
+| **Prompts** | Reusable templates | Action templates |
+
+### 10.2 MCP Server Configuration
+
+The Hub exposes an MCP server that agents can connect to:
+
+```json
+{
+  "mcpServers": {
+    "cauce": {
+      "command": "cauce-hub",
+      "args": ["mcp-server"],
+      "env": {
+        "CAUCE_HUB_URL": "https://hub.example.com",
+        "CAUCE_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+Or via HTTP transport:
+
+```
+https://hub.example.com/mcp
+```
+
+### 10.3 MCP Resources
+
+Resources provide read-only access to Cauce data.
+
+#### 10.3.1 Topics Resource
+
+List available topics:
+
+```json
+{
+  "uri": "cauce://topics",
+  "name": "Available Topics",
+  "description": "List of topics available for subscription",
+  "mimeType": "application/json"
+}
+```
+
+Response:
+
+```json
+{
+  "topics": [
+    {
+      "name": "signal.email.*",
+      "description": "Email signals",
+      "public": false
+    },
+    {
+      "name": "signal.blog.*",
+      "description": "Blog post notifications",
+      "public": true
+    }
+  ]
+}
+```
+
+#### 10.3.2 Subscriptions Resource
+
+List active subscriptions:
+
+```json
+{
+  "uri": "cauce://subscriptions",
+  "name": "Active Subscriptions",
+  "description": "Your active topic subscriptions",
+  "mimeType": "application/json"
+}
+```
+
+#### 10.3.3 Signals Resource
+
+Get pending signals for a subscription:
+
+```json
+{
+  "uri": "cauce://signals/{subscription_id}",
+  "name": "Pending Signals",
+  "description": "Unacknowledged signals for this subscription",
+  "mimeType": "application/json"
+}
+```
+
+Response:
+
+```json
+{
+  "signals": [
+    {
+      "id": "sig_1704288600_abc123",
+      "topic": "signal.email.received",
+      "timestamp": "2026-01-03T10:30:00.000Z",
+      "payload": { ... }
+    }
+  ],
+  "has_more": false
+}
+```
+
+### 10.4 MCP Tools
+
+Tools allow agents to perform actions on the Hub.
+
+#### 10.4.1 subscribe
+
+Subscribe to topics:
+
+```json
+{
+  "name": "subscribe",
+  "description": "Subscribe to one or more topics to receive signals",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "topics": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Topic patterns to subscribe to (wildcards allowed)"
+      }
+    },
+    "required": ["topics"]
+  }
+}
+```
+
+Example call:
+
+```json
+{
+  "name": "subscribe",
+  "arguments": {
+    "topics": ["signal.email.*", "signal.slack.*"]
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "subscription_id": "sub_abc123",
+  "status": "active",
+  "topics": ["signal.email.*", "signal.slack.*"]
+}
+```
+
+#### 10.4.2 unsubscribe
+
+Remove a subscription:
+
+```json
+{
+  "name": "unsubscribe",
+  "description": "Unsubscribe from topics",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "subscription_id": {
+        "type": "string",
+        "description": "Subscription to remove"
+      }
+    },
+    "required": ["subscription_id"]
+  }
+}
+```
+
+#### 10.4.3 publish
+
+Publish a signal or action:
+
+```json
+{
+  "name": "publish",
+  "description": "Publish a signal or action to a topic",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "topic": {
+        "type": "string",
+        "description": "Topic to publish to"
+      },
+      "payload": {
+        "type": "object",
+        "description": "Message payload"
+      }
+    },
+    "required": ["topic", "payload"]
+  }
+}
+```
+
+Example - send an email:
+
+```json
+{
+  "name": "publish",
+  "arguments": {
+    "topic": "action.email.send",
+    "payload": {
+      "to": ["alice@example.com"],
+      "subject": "Meeting follow-up",
+      "body_text": "Thanks for the meeting today!"
+    }
+  }
+}
+```
+
+#### 10.4.4 ack
+
+Acknowledge received signals:
+
+```json
+{
+  "name": "ack",
+  "description": "Acknowledge receipt of signals",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "subscription_id": {
+        "type": "string",
+        "description": "Subscription the signals were received on"
+      },
+      "signal_ids": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Signal IDs to acknowledge"
+      }
+    },
+    "required": ["subscription_id", "signal_ids"]
+  }
+}
+```
+
+#### 10.4.5 get_signals
+
+Poll for new signals (alternative to resource):
+
+```json
+{
+  "name": "get_signals",
+  "description": "Get pending signals for a subscription",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "subscription_id": {
+        "type": "string",
+        "description": "Subscription to get signals for"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum signals to return",
+        "default": 50
+      },
+      "since_id": {
+        "type": "string",
+        "description": "Only return signals after this ID"
+      }
+    },
+    "required": ["subscription_id"]
+  }
+}
+```
+
+### 10.5 MCP Prompts
+
+Prompts provide reusable templates for common actions.
+
+#### 10.5.1 send_email
+
+```json
+{
+  "name": "send_email",
+  "description": "Send an email through Cauce",
+  "arguments": [
+    {
+      "name": "to",
+      "description": "Recipient email address",
+      "required": true
+    },
+    {
+      "name": "subject",
+      "description": "Email subject",
+      "required": true
+    },
+    {
+      "name": "body",
+      "description": "Email body",
+      "required": true
+    }
+  ]
+}
+```
+
+#### 10.5.2 send_sms
+
+```json
+{
+  "name": "send_sms",
+  "description": "Send an SMS through Cauce",
+  "arguments": [
+    {
+      "name": "to",
+      "description": "Phone number (E.164 format)",
+      "required": true
+    },
+    {
+      "name": "message",
+      "description": "Message text",
+      "required": true
+    }
+  ]
+}
+```
+
+#### 10.5.3 check_messages
+
+```json
+{
+  "name": "check_messages",
+  "description": "Check for new messages across all channels",
+  "arguments": [
+    {
+      "name": "channels",
+      "description": "Channels to check (email, sms, slack, all)",
+      "required": false
+    }
+  ]
+}
+```
+
+### 10.6 Polling Pattern
+
+Since MCP is request-response (not streaming), agents poll for signals:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                      MCP Polling Pattern                            │
+│                                                                     │
+│  Agent                              Hub                             │
+│    │                                 │                              │
+│    │──subscribe(topics)─────────────▶│                              │
+│    │◀──subscription_id───────────────│                              │
+│    │                                 │                              │
+│    │  ┌─────── Poll Loop ───────┐   │                              │
+│    │  │                         │   │                              │
+│    │──│─get_signals(sub_id)────▶│   │                              │
+│    │◀─│─signals[]───────────────│   │                              │
+│    │  │                         │   │                              │
+│    │──│─ack(signal_ids)────────▶│   │                              │
+│    │  │                         │   │                              │
+│    │  │      (wait interval)    │   │                              │
+│    │  └─────────────────────────┘   │                              │
+│    │                                 │                              │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+Recommended polling intervals:
+
+| Use Case | Interval |
+|----------|----------|
+| Real-time (active session) | 5-10 seconds |
+| Background monitoring | 30-60 seconds |
+| Low-priority | 5+ minutes |
+
+### 10.7 Limitations
+
+MCP integration has limitations compared to native Cauce:
+
+| Feature | Native Cauce | MCP |
+|---------|---------------|-----|
+| Real-time streaming | ✅ WebSocket/SSE | ❌ Polling only |
+| Push notifications | ✅ Webhooks | ❌ Must poll |
+| Low latency | ✅ ~ms | ⚠️ Depends on poll interval |
+| Bidirectional | ✅ Full duplex | ❌ Request-response |
+| E2E encryption | ✅ Supported | ⚠️ Via tool parameters |
+
+For real-time use cases, native Cauce protocol is recommended.
+
+### 10.8 Example: MCP Agent Workflow
+
+Complete workflow for an MCP agent:
+
+```python
+# 1. Connect to Cauce Hub via MCP
+mcp_client.connect("cauce-hub")
+
+# 2. Subscribe to topics
+result = mcp_client.call_tool("subscribe", {
+    "topics": ["signal.email.*", "signal.slack.*"]
+})
+subscription_id = result["subscription_id"]
+
+# 3. Poll for signals
+while True:
+    signals = mcp_client.call_tool("get_signals", {
+        "subscription_id": subscription_id,
+        "limit": 50
+    })
+
+    for signal in signals["signals"]:
+        # 4. Process signal (agent logic)
+        response = process_signal(signal)
+
+        # 5. Publish response if needed
+        if response:
+            mcp_client.call_tool("publish", {
+                "topic": f"action.{signal['source']['type']}.send",
+                "payload": response
+            })
+
+        # 6. Acknowledge
+        mcp_client.call_tool("ack", {
+            "subscription_id": subscription_id,
+            "signal_ids": [signal["id"]]
+        })
+
+    # 7. Wait before next poll
+    time.sleep(10)
+```
+
+---
+
+## 11. Error Handling
+
+### 11.1 Error Response Format
 
 ```json
 {
@@ -1395,9 +1855,9 @@ A2A errors are mapped to standard A2A error responses:
 }
 ```
 
-### 10.2 Error Codes
+### 11.2 Error Codes
 
-#### 10.2.1 JSON-RPC Standard Errors
+#### 11.2.1 JSON-RPC Standard Errors
 
 | Code | Message | Description |
 |------|---------|-------------|
@@ -1407,7 +1867,7 @@ A2A errors are mapped to standard A2A error responses:
 | -32602 | Invalid params | Invalid method parameters |
 | -32603 | Internal error | Server error |
 
-#### 10.2.2 Cauce Protocol Errors
+#### 11.2.2 Cauce Protocol Errors
 
 | Code | Message | Description |
 |------|---------|-------------|
@@ -1427,9 +1887,9 @@ A2A errors are mapped to standard A2A error responses:
 | -32014 | Unsupported transport | Requested transport not supported |
 | -32015 | Invalid topic | Topic name is malformed |
 
-### 10.3 Retry Semantics
+### 11.3 Retry Semantics
 
-#### 10.3.1 Publisher Retry
+#### 11.3.1 Publisher Retry
 
 When publishing fails:
 
@@ -1441,7 +1901,7 @@ When publishing fails:
 | -32007 | No | Signal too large, cannot retry |
 | -32003 | No | Fix authorization |
 
-#### 10.3.2 Hub Redelivery
+#### 11.3.2 Hub Redelivery
 
 For unacknowledged signals:
 
@@ -1459,9 +1919,9 @@ For unacknowledged signals:
 
 ---
 
-## 11. Versioning
+## 12. Versioning
 
-### 11.1 Protocol Version
+### 12.1 Protocol Version
 
 The protocol version follows semantic versioning (MAJOR.MINOR.PATCH):
 
@@ -1469,7 +1929,7 @@ The protocol version follows semantic versioning (MAJOR.MINOR.PATCH):
 - **MINOR**: New features, backward compatible
 - **PATCH**: Bug fixes, clarifications
 
-### 11.2 Version Negotiation
+### 12.2 Version Negotiation
 
 During handshake:
 
@@ -1494,7 +1954,7 @@ Hub responds with negotiated version:
 }
 ```
 
-### 11.3 Backward Compatibility
+### 12.3 Backward Compatibility
 
 - Hub SHOULD support previous MINOR versions
 - Hub MAY support previous MAJOR versions
@@ -1503,7 +1963,7 @@ Hub responds with negotiated version:
 
 ---
 
-## 12. Appendices
+## 13. Appendices
 
 ### Appendix A: Signal ID Format
 
