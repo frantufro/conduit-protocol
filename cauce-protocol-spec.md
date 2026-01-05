@@ -1744,9 +1744,53 @@ Prompts provide reusable templates for common actions.
 }
 ```
 
-### 10.6 Polling Pattern
+### 10.6 Signal Delivery Patterns
 
-Since MCP is request-response (not streaming), agents poll for signals:
+MCP supports two patterns for signal delivery:
+
+#### 10.6.1 Streaming via SSE (Recommended)
+
+MCP's **Streamable HTTP transport** supports Server-Sent Events for real-time signal delivery:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                      MCP SSE Streaming                              │
+│                                                                     │
+│  Agent                              Hub                             │
+│    │                                 │                              │
+│    │──subscribe(topics)─────────────▶│                              │
+│    │◀──subscription_id───────────────│                              │
+│    │                                 │                              │
+│    │──GET /mcp (Accept: text/event-stream)                          │
+│    │◀══════════ SSE Stream ═══════════│                              │
+│    │◀──signal (event)────────────────│                              │
+│    │◀──signal (event)────────────────│                              │
+│    │──ack(signal_ids)───────────────▶│                              │
+│    │◀──signal (event)────────────────│                              │
+│    │              ...                │                              │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+SSE stream format:
+
+```
+event: signal
+id: sig_1704288600_abc123
+data: {"id":"sig_1704288600_abc123","topic":"signal.email.received","payload":{...}}
+
+event: signal
+id: sig_1704288700_def456
+data: {"id":"sig_1704288700_def456","topic":"signal.slack.message","payload":{...}}
+```
+
+Features:
+- Real-time signal delivery
+- Resumable via `Last-Event-ID` header
+- Server can send notifications without client request
+
+#### 10.6.2 Polling (Fallback)
+
+For environments that don't support SSE, agents can poll:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -1778,19 +1822,18 @@ Recommended polling intervals:
 | Background monitoring | 30-60 seconds |
 | Low-priority | 5+ minutes |
 
-### 10.7 Limitations
-
-MCP integration has limitations compared to native Cauce:
+### 10.7 Feature Comparison
 
 | Feature | Native Cauce | MCP |
 |---------|---------------|-----|
-| Real-time streaming | ✅ WebSocket/SSE | ❌ Polling only |
-| Push notifications | ✅ Webhooks | ❌ Must poll |
-| Low latency | ✅ ~ms | ⚠️ Depends on poll interval |
-| Bidirectional | ✅ Full duplex | ❌ Request-response |
+| Real-time streaming | ✅ WebSocket/SSE | ✅ SSE via Streamable HTTP |
+| Push notifications | ✅ Webhooks | ⚠️ SSE stream or polling |
+| Low latency | ✅ ~ms | ✅ ~ms (with SSE) |
+| Bidirectional | ✅ Full duplex | ⚠️ Unidirectional SSE + POST |
 | E2E encryption | ✅ Supported | ⚠️ Via tool parameters |
+| Resumable streams | ✅ Supported | ✅ Via Last-Event-ID |
 
-For real-time use cases, native Cauce protocol is recommended.
+MCP with SSE provides near-parity with native Cauce for most use cases.
 
 ### 10.8 Example: MCP Agent Workflow
 
