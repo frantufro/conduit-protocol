@@ -15,24 +15,24 @@ A complete Rust implementation of the Conduit Protocol, including:
 ## Architecture
 
 ```
-conduit/
+conduit-rust/
 ├── crates/
-│   ├── conduit-hub/          # Core Hub server
-│   ├── conduit-cli/          # Hub management CLI
-│   ├── conduit-agent-cli/    # Interactive CLI agent
-│   ├── conduit-common/       # Shared types, schemas, utilities
+│   ├── conduit-hub/              # Core Hub server
+│   ├── conduit-cli/              # Hub management CLI
+│   ├── conduit-agent-cli/        # Interactive CLI agent
+│   ├── conduit-common/           # Shared types, schemas, utilities
 │   │
-│   ├── adapter-echo/         # Echo adapter (testing)
-│   ├── adapter-cli/          # CLI adapter (stdin/stdout)
-│   ├── adapter-rss/          # RSS feed adapter
-│   ├── adapter-github/       # GitHub notifications
-│   ├── adapter-telegram/     # Telegram Bot API
-│   ├── adapter-gmail/        # Gmail (IMAP + OAuth)
-│   ├── adapter-fastmail/     # Fastmail (JMAP)
-│   ├── adapter-slack/        # Slack Events API
-│   ├── adapter-discord/      # Discord Gateway
-│   ├── adapter-gcal/         # Google Calendar
-│   └── adapter-caldav/       # CalDAV (generic)
+│   ├── conduit-adapter-echo/     # Echo adapter (testing)
+│   ├── conduit-adapter-cli/      # CLI adapter (stdin/stdout)
+│   ├── conduit-adapter-rss/      # RSS feed adapter
+│   ├── conduit-adapter-github/   # GitHub notifications
+│   ├── conduit-adapter-telegram/ # Telegram Bot API
+│   ├── conduit-adapter-gmail/    # Gmail (IMAP + OAuth)
+│   ├── conduit-adapter-fastmail/ # Fastmail (JMAP)
+│   ├── conduit-adapter-slack/    # Slack Events API
+│   ├── conduit-adapter-discord/  # Discord Gateway
+│   ├── conduit-adapter-gcal/     # Google Calendar
+│   └── conduit-adapter-caldav/   # CalDAV (generic)
 │
 ├── docker/
 │   ├── Dockerfile
@@ -255,7 +255,7 @@ services:
       - ./data:/data
 
   gmail-adapter:
-    image: conduit/adapter-gmail
+    image: conduit/conduit-adapter-gmail
     environment:
       CONDUIT_HUB_URL: ws://hub:8080
       CONDUIT_API_KEY: ${GMAIL_ADAPTER_KEY}
@@ -263,7 +263,7 @@ services:
       - hub
 
   slack-adapter:
-    image: conduit/adapter-slack
+    image: conduit/conduit-adapter-slack
     environment:
       CONDUIT_HUB_URL: ws://hub:8080
       CONDUIT_API_KEY: ${SLACK_ADAPTER_KEY}
