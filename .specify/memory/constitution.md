@@ -1,22 +1,20 @@
 <!--
   Sync Impact Report
   ==================
-  Version change: N/A (initial) → 1.0.0
+  Version change: 1.0.0 → 1.1.0
 
-  Modified principles: N/A (initial constitution)
+  Modified principles: None
 
   Added sections:
-  - Core Principles (10 principles)
-  - Technical Constraints
-  - Development Workflow
-  - Governance
+  - Principle XI: Test-Driven Development (TDD with 95% coverage requirement)
+  - Development Workflow: Implementation Changes section
 
-  Removed sections: N/A
+  Removed sections: None
 
   Templates status:
-  - .specify/templates/plan-template.md: ✅ Compatible (uses constitution check)
+  - .specify/templates/plan-template.md: ✅ Updated (added coverage tool, threshold, constitution check table)
   - .specify/templates/spec-template.md: ✅ Compatible (FR/SC structure aligns)
-  - .specify/templates/tasks-template.md: ✅ Compatible (user story organization)
+  - .specify/templates/tasks-template.md: ✅ Updated (tests now REQUIRED, added coverage verification)
   - .specify/templates/checklist-template.md: ✅ Compatible (generic)
   - .specify/templates/agent-file-template.md: ✅ Compatible (generic)
 
@@ -166,6 +164,25 @@ Unsupported features MUST NOT cause failures:
 **Rationale**: The protocol evolves over time. Older clients connecting to newer hubs
 (or vice versa) MUST continue to function for the features they share.
 
+### XI. Test-Driven Development
+
+All implementations MUST follow Test-Driven Development (TDD) with strict coverage:
+
+- Tests MUST be written before implementation code
+- Tests MUST fail before implementation (Red-Green-Refactor cycle)
+- All crates MUST maintain minimum 95% code coverage
+- Coverage MUST be measured and enforced in CI
+- PRs reducing coverage below 95% MUST NOT be merged
+
+**Test categories:**
+- **Unit tests**: Individual functions and modules
+- **Integration tests**: Cross-module and cross-crate interactions
+- **Contract tests**: Schema validation and protocol compliance
+
+**Rationale**: A protocol implementation must be correct. TDD ensures behavior is
+specified before coded, and 95% coverage ensures edge cases are tested. Untested
+code in a communication system risks silent data loss or corruption.
+
 ## Technical Constraints
 
 ### Message Limits
@@ -213,6 +230,14 @@ Categories: `signal` (inbound), `action` (outbound), `system` (internal)
 2. Capability negotiation during handshake determines support
 3. Unsupported extensions MUST NOT cause failures (Principle X)
 
+### Implementation Changes
+
+1. Write failing tests that specify the desired behavior
+2. Implement the minimum code to pass tests
+3. Refactor while maintaining green tests
+4. Verify coverage meets 95% threshold
+5. Submit PR with passing CI
+
 ## Governance
 
 This constitution governs all Cauce Protocol development. Amendments require:
@@ -227,4 +252,4 @@ All contributions MUST verify compliance with these principles before merge.
 The specification (`cauce-protocol-spec.md`) is the normative reference.
 This constitution provides guiding principles; the spec provides precise behavior.
 
-**Version**: 1.0.0 | **Ratified**: 2026-01-05 | **Last Amended**: 2026-01-05
+**Version**: 1.1.0 | **Ratified**: 2026-01-05 | **Last Amended**: 2026-01-06
