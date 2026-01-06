@@ -17,11 +17,18 @@ A complete Rust implementation of the Conduit Protocol, including:
 ```
 conduit-rust/
 ├── crates/
-│   ├── conduit-hub/              # Core Hub server
-│   ├── conduit-cli/              # Hub management CLI
-│   ├── conduit-agent-cli/        # Interactive CLI agent
-│   ├── conduit-common/           # Shared types, schemas, utilities
 │   │
+│   │ # Core libraries
+│   ├── conduit-core/             # Shared: types, schemas, JSON-RPC, validation
+│   ├── conduit-client-sdk/       # SDK for building adapters/agents
+│   ├── conduit-server-sdk/       # SDK for building Hub implementations
+│   │
+│   │ # Reference implementation
+│   ├── conduit-hub/              # Reference Hub server (uses server-sdk)
+│   ├── conduit-cli/              # Hub management CLI
+│   ├── conduit-agent-cli/        # Interactive CLI agent (uses client-sdk)
+│   │
+│   │ # Adapters (all use client-sdk)
 │   ├── conduit-adapter-echo/     # Echo adapter (testing)
 │   ├── conduit-adapter-cli/      # CLI adapter (stdin/stdout)
 │   ├── conduit-adapter-rss/      # RSS feed adapter
@@ -40,6 +47,105 @@ conduit-rust/
 │
 └── config/
     └── conduit.example.toml
+```
+
+## SDK Architecture
+
+### conduit-core
+
+Shared types and utilities used by both SDKs:
+
+```rust
+// Types
+pub struct Signal { id, version, timestamp, source, topic, payload, metadata }
+pub struct Action { id, version, timestamp, topic, action, context }
+pub struct Source { type_, adapter_id, native_id }
+pub struct Payload { raw, content_type, size_bytes }
+
+// JSON-RPC
+pub struct JsonRpcRequest { jsonrpc, id, method, params }
+pub struct JsonRpcResponse { jsonrpc, id, result, error }
+pub struct JsonRpcError { code, message, data }
+
+// Validation
+pub fn validate_signal(value: &Value) -> Result<Signal, ValidationError>
+pub fn validate_action(value: &Value) -> Result<Action, ValidationError>
+pub fn validate_topic(topic: &str) -> Result<(), ValidationError>
+
+// Constants
+pub mod errors { pub const SUBSCRIPTION_NOT_FOUND: i32 = -32001; ... }
+pub mod methods { pub const SUBSCRIBE: &str = "conduit.subscribe"; ... }
+```
+
+### conduit-client-sdk
+
+For building adapters and agents:
+
+```rust
+// Connection
+pub struct ConduitClient { ... }
+impl ConduitClient {
+    pub async fn connect(config: ClientConfig) -> Result<Self>
+    pub async fn disconnect(&self) -> Result<()>
+}
+
+// Pub/Sub
+impl ConduitClient {
+    pub async fn subscribe(&self, topics: &[&str]) -> Result<Subscription>
+    pub async fn unsubscribe(&self, subscription_id: &str) -> Result<()>
+    pub async fn publish(&self, topic: &str, message: impl Into<Message>) -> Result<()>
+    pub async fn ack(&self, subscription_id: &str, signal_ids: &[&str]) -> Result<()>
+}
+
+// Receiving signals
+impl Subscription {
+    pub async fn next(&self) -> Option<Signal>
+    pub fn stream(&self) -> impl Stream<Item = Signal>
+}
+
+// Transports (client-side)
+pub enum Transport { WebSocket, SSE, Polling, LongPolling, Webhook }
+```
+
+### conduit-server-sdk
+
+For building Hub implementations:
+
+```rust
+// Server
+pub struct ConduitServer { ... }
+impl ConduitServer {
+    pub fn new(config: ServerConfig) -> Self
+    pub fn router(&self) -> axum::Router  // Or generic over framework
+}
+
+// Subscription management
+pub trait SubscriptionManager {
+    fn subscribe(&self, client_id: &str, topics: &[&str]) -> Result<Subscription>
+    fn unsubscribe(&self, subscription_id: &str) -> Result<()>
+    fn get_subscribers(&self, topic: &str) -> Vec<Subscription>
+}
+
+// Message routing
+pub trait MessageRouter {
+    fn route(&self, message: Message) -> Result<RouteResult>
+    fn deliver(&self, subscription_id: &str, signal: Signal) -> Result<()>
+}
+
+// Delivery tracking
+pub trait DeliveryTracker {
+    fn track(&self, subscription_id: &str, signal_id: &str) -> Result<()>
+    fn ack(&self, subscription_id: &str, signal_ids: &[&str]) -> Result<()>
+    fn get_unacked(&self, subscription_id: &str) -> Vec<Signal>
+    fn get_for_redelivery(&self) -> Vec<(String, Signal)>
+}
+
+// Transports (server-side)
+pub trait TransportHandler {
+    fn handle_websocket(&self, socket: WebSocket) -> impl Future
+    fn handle_sse(&self, req: Request) -> impl Future<Output = Response>
+    fn handle_poll(&self, req: Request) -> impl Future<Output = Response>
+}
 ```
 
 ## Hub Features
@@ -273,55 +379,68 @@ services:
 
 ## Development Phases
 
-### Phase 1: Core Hub
+### Phase 1: Core Foundation
 
 1. Project setup (Cargo workspace, CI)
-2. Common types and JSON schema validation
-3. SQLite storage layer
-4. Pub/sub engine (topics, subscriptions, routing)
-5. WebSocket transport
-6. JSON-RPC method handlers
-7. Acknowledgment and redelivery
+2. `conduit-core`: types, JSON-RPC, schema validation
+3. `conduit-core`: error codes, method constants
 
-### Phase 2: Additional Transports
+### Phase 2: Client SDK
 
-1. SSE transport
-2. HTTP Polling transport
-3. Long Polling transport
-4. Webhook transport
+1. `conduit-client-sdk`: WebSocket transport (client-side)
+2. `conduit-client-sdk`: connection, handshake, auth
+3. `conduit-client-sdk`: subscribe, publish, ack methods
+4. `conduit-client-sdk`: SSE, Polling, Long Polling transports
+5. `conduit-client-sdk`: Webhook transport (receive mode)
 
-### Phase 3: Testing Infrastructure
+### Phase 3: Server SDK
 
-1. Echo adapter
-2. CLI adapter
-3. CLI agent
-4. Hub CLI (basic commands)
+1. `conduit-server-sdk`: WebSocket transport (server-side)
+2. `conduit-server-sdk`: subscription manager
+3. `conduit-server-sdk`: message router
+4. `conduit-server-sdk`: delivery tracker
+5. `conduit-server-sdk`: SSE, Polling, Long Polling, Webhook transports
 
-### Phase 4: Integrations
+### Phase 4: Reference Hub
+
+1. `conduit-hub`: SQLite storage layer
+2. `conduit-hub`: wire up server-sdk components
+3. `conduit-hub`: configuration loading
+4. `conduit-hub`: API key authentication
+
+### Phase 5: Testing Infrastructure
+
+1. `conduit-adapter-echo`: echo adapter
+2. `conduit-adapter-cli`: CLI adapter
+3. `conduit-agent-cli`: interactive CLI agent
+4. `conduit-cli`: Hub management CLI (basic commands)
+
+### Phase 6: Integrations
 
 1. A2A Gateway (Agent Card, SendMessage, push)
 2. MCP Interface (Resources, Tools, Prompts)
 
-### Phase 5: Real Adapters (Tier 2)
+### Phase 7: Real Adapters (Tier 2)
 
-1. RSS adapter
-2. GitHub adapter
-3. Telegram adapter
+1. `conduit-adapter-rss`: RSS adapter
+2. `conduit-adapter-github`: GitHub adapter
+3. `conduit-adapter-telegram`: Telegram adapter
 
-### Phase 6: Real Adapters (Tier 3)
+### Phase 8: Real Adapters (Tier 3)
 
-1. Gmail adapter
-2. Fastmail adapter
-3. Slack adapter
-4. Discord adapter
-5. Google Calendar adapter
-6. CalDAV adapter
+1. `conduit-adapter-gmail`: Gmail adapter
+2. `conduit-adapter-fastmail`: Fastmail adapter
+3. `conduit-adapter-slack`: Slack adapter
+4. `conduit-adapter-discord`: Discord adapter
+5. `conduit-adapter-gcal`: Google Calendar adapter
+6. `conduit-adapter-caldav`: CalDAV adapter
 
-### Phase 7: Polish
+### Phase 9: Polish
 
-1. Hub CLI (full commands)
+1. `conduit-cli`: full commands
 2. Docker images
 3. Documentation
+4. Publish crates to crates.io
 
 ## Tech Stack
 
