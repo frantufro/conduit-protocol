@@ -20,7 +20,9 @@
 **Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
 **Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
 **Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]
+**Coverage Tool**: [e.g., cargo-llvm-cov, coverage.py, xcov or NEEDS CLARIFICATION]
+**Coverage Threshold**: 95% (per Constitution Principle XI)  
 **Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
 **Project Type**: [single/web/mobile - determines source structure]  
 **Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
@@ -31,7 +33,13 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Requirement | Status |
+|-----------|-------------|--------|
+| I. Spec-First | Behavior defined in spec before implementation | ☐ |
+| II. Schema-Driven | Core messages have JSON Schemas | ☐ |
+| XI. TDD | Tests written before implementation, 95% coverage | ☐ |
+
+[Add additional principle checks as relevant to the feature]
 
 ## Project Structure
 
