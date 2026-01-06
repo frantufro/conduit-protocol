@@ -15,24 +15,24 @@ A complete Rust implementation of the Cauce Protocol, including:
 ## Architecture
 
 ```
-cauce/
+cauce-rust/
 ├── crates/
-│   ├── cauce-hub/          # Core Hub server
-│   ├── cauce-cli/          # Hub management CLI
-│   ├── cauce-agent-cli/    # Interactive CLI agent
-│   ├── cauce-common/       # Shared types, schemas, utilities
+│   ├── cauce-hub/              # Core Hub server
+│   ├── cauce-cli/              # Hub management CLI
+│   ├── cauce-agent-cli/        # Interactive CLI agent
+│   ├── cauce-common/           # Shared types, schemas, utilities
 │   │
-│   ├── adapter-echo/         # Echo adapter (testing)
-│   ├── adapter-cli/          # CLI adapter (stdin/stdout)
-│   ├── adapter-rss/          # RSS feed adapter
-│   ├── adapter-github/       # GitHub notifications
-│   ├── adapter-telegram/     # Telegram Bot API
-│   ├── adapter-gmail/        # Gmail (IMAP + OAuth)
-│   ├── adapter-fastmail/     # Fastmail (JMAP)
-│   ├── adapter-slack/        # Slack Events API
-│   ├── adapter-discord/      # Discord Gateway
-│   ├── adapter-gcal/         # Google Calendar
-│   └── adapter-caldav/       # CalDAV (generic)
+│   ├── cauce-adapter-echo/     # Echo adapter (testing)
+│   ├── cauce-adapter-cli/      # CLI adapter (stdin/stdout)
+│   ├── cauce-adapter-rss/      # RSS feed adapter
+│   ├── cauce-adapter-github/   # GitHub notifications
+│   ├── cauce-adapter-telegram/ # Telegram Bot API
+│   ├── cauce-adapter-gmail/    # Gmail (IMAP + OAuth)
+│   ├── cauce-adapter-fastmail/ # Fastmail (JMAP)
+│   ├── cauce-adapter-slack/    # Slack Events API
+│   ├── cauce-adapter-discord/  # Discord Gateway
+│   ├── cauce-adapter-gcal/     # Google Calendar
+│   └── cauce-adapter-caldav/   # CalDAV (generic)
 │
 ├── docker/
 │   ├── Dockerfile
@@ -255,7 +255,7 @@ services:
       - ./data:/data
 
   gmail-adapter:
-    image: cauce/adapter-gmail
+    image: cauce/cauce-adapter-gmail
     environment:
       CAUCE_HUB_URL: ws://hub:8080
       CAUCE_API_KEY: ${GMAIL_ADAPTER_KEY}
@@ -263,7 +263,7 @@ services:
       - hub
 
   slack-adapter:
-    image: cauce/adapter-slack
+    image: cauce/cauce-adapter-slack
     environment:
       CAUCE_HUB_URL: ws://hub:8080
       CAUCE_API_KEY: ${SLACK_ADAPTER_KEY}
