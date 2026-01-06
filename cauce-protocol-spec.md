@@ -2,7 +2,7 @@
 
 **Version:** 1.0.0-draft
 **Status:** Draft
-**Date:** 2026-01-03
+**Date:** 2026-01-05
 
 ---
 
@@ -196,7 +196,8 @@ The Hub is the central pub/sub message broker.
 #### 3.2.2 Requirements
 
 - Hub MUST implement pub/sub message routing
-- Hub MUST support all five transport bindings
+- Hub MUST support at least one transport binding
+- Hub SHOULD support WebSocket and at least one HTTP-based transport (SSE, Polling, or Webhooks)
 - Hub MUST support subscription management
 - Hub MUST enforce TLS for all connections
 - Hub MUST expose A2A-compatible endpoint
@@ -748,7 +749,7 @@ Subscribers MUST acknowledge received signals to enable reliable delivery.
 
 ## 7. Transport Bindings
 
-Cauce supports five transport mechanisms. Implementations MUST support at least one; Hub implementations MUST support all five.
+Cauce supports five transport mechanisms. Implementations MUST support at least one. Hub implementations SHOULD support WebSocket and at least one HTTP-based transport for broad client compatibility.
 
 ### 7.1 WebSocket
 
@@ -2124,6 +2125,11 @@ The following features are planned for future versions:
 ---
 
 ## Changelog
+
+### v1.0.0-draft (2026-01-05)
+
+- Relaxed transport requirements: Hub MUST support at least one transport, SHOULD support WebSocket + HTTP-based
+- Added project constitution defining 10 core principles
 
 ### v1.0.0-draft (2026-01-03)
 
